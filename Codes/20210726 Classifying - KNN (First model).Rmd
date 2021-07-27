@@ -1,0 +1,96 @@
+---
+title: "20210726 Classifying - KNN (First model)"
+author: "cheungngo"
+date: "26 July 2021"
+output: html_document
+---
+
+### Preparing the libraries and data
+
+```{r, message=FALSE, warning=FALSE}
+library(mclust)
+library(tidyverse)
+library(mlr)
+```
+
+```{r}
+data("diabetes")
+# The data set contains three measurements made on 145 non-obese adult patients classified into three groups.
+```
+
+```{r}
+dm = diabetes
+dm_tib = as_tibble(diabetes)
+```
+
+### Visualizing the data
+
+```{r}
+# visualizing the data
+head(dm_tib)
+```
+
+```{r}
+ggplot(dm_tib,aes(glucose, insulin, col = class)) +
+  geom_point()
+```
+
+```{r}
+ggplot(dm_tib, aes(sspg, insulin, col = class)) +
+  geom_point()
+```
+
+```{r}
+ggplot(dm_tib, aes(sspg, glucose, col = class)) +
+  geom_point()
+```
+
+### Defining the task
+
+```{r}
+dm_task = makeClassifTask(data = dm_tib,
+                          target = "class") # the classification target, i.e. the column name "class"
+```
+
+### Defining the learner
+
+```{r, warning=FALSE}
+# Looking at the "class", "algorithm"
+
+listLearners("classif")$class[1:5]
+listLearners("regr")$class[1:5]
+listLearners("cluster")$class[1:5]
+listLearners("surv")$class[1:5]
+```
+
+```{r}
+# defining the learner
+
+dm_knn = makeLearner("classif.knn",
+                     par.vals = list("k" = 3))
+```
+
+### Training the model
+
+```{r}
+model_dm = train(learner = dm_knn,
+                 task = dm_task)
+```
+
+### predict() and performance()
+
+```{r}
+pred_dm = predict(model_dm, newdata = dm_tib)
+pred_dm$data[1:5,] # so you can see the "truth" and "response" here
+```
+
+```{r}
+performance(pred_dm, measures = list(mmce, acc))
+```
+
+```{r}
+# one can find the list of measures here
+
+listMeasures()
+```
+
