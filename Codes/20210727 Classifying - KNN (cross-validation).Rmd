@@ -84,3 +84,13 @@ kfoldCV$aggr # average performance
 calculateConfusionMatrix(kfoldCV$pred, relative = T)
 ```
 
+### Leave-one-out cross validation
+
+```{r, message=FALSE}
+LOO = makeResampleDesc(method = "LOO")
+LOOCV = resample(learner_dm, task_dm, LOO, measures = list(mmce,acc))
+LOOCV$aggr
+calculateConfusionMatrix(LOOCV$pred, relative = T)
+
+```
+
