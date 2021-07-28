@@ -1,0 +1,33 @@
+---
+title: "ReadMe - installing keras in R"
+author: "cheungngo"
+date: "28 July 2021"
+output: html_document
+---
+
+# need to use the conda environment as virtual env not supported in pc
+
+```{r, eval=FALSE}
+library(reticulate)
+install_miniconda(path = "C:/miniconda")
+Sys.setenv(RETICULATE_MINICONDA_PATH = "C:/miniconda")
+use_miniconda()
+```
+
+# install keras
+
+```{r, eval=FALSE}
+library(keras)
+install_keras(method = "conda")
+```
+
+# every time after restart
+
+```{r, eval=FALSE}
+library(reticulate)
+Sys.setenv(RETICULATE_MINICONDA_PATH = "C:/miniconda")
+use_miniconda()
+
+library(keras)
+```
+
