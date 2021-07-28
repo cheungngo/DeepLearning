@@ -1,0 +1,95 @@
+---
+title: "20210728 Classifying - KNN (Hyperparameter tunning)"
+author: "cheungngo"
+date: "28 July 2021"
+output: html_document
+---
+
+### Preparing the libraries and data and others
+
+```{r, message=FALSE, warning=FALSE}
+library(mclust)
+library(tidyverse)
+library(mlr)
+```
+
+```{r}
+data("diabetes")
+# The data set contains three measurements made on 145 non-obese adult patients classified into three groups.
+```
+
+```{r}
+dm = diabetes
+dm_tib = as_tibble(diabetes)
+```
+
+```{r}
+task_dm = makeClassifTask(data = dm_tib,
+                          target = "class")
+```
+
+### Define a range of values of k (while k being the hyperparameter)
+
+```{r}
+kspace = makeParamSet(makeDiscreteParam("k", values = 1:10))
+```
+
+```{r}
+kspace
+```
+
+### Defining methods to search the parameter space
+
+```{r}
+control = makeTuneControlGrid()
+```
+
+```{r}
+control
+```
+
+### Cross-validating the tuning procedures
+
+```{r}
+CV_tuning = makeResampleDesc(method = "RepCV", # like the old ways
+                             folds = 10,
+                             reps = 20,
+                             stratify = T)
+
+k_tuned = tuneParams(learner = "classif.knn", # no need to makeLearner()
+                     task = task_dm, # same as the resample()
+                     resampling = CV_tuning, # same as the resample()
+                     measures = acc, # default would be mmce
+                     par.set = kspace,
+                     control = control)
+```
+
+```{r}
+k_tuned$x$k
+```
+
+### Plotting the tuning data
+
+```{r}
+k_tuned_data = generateHyperParsEffectData(k_tuned)
+
+plotHyperParsEffect(k_tuned_data, 
+                    x = "k", y = "acc.test.mean", # must specify
+                    plot.type = "line") # default would be dots
+```
+
+### Training the model with the tuned k
+
+```{r}
+learner_dm = makeLearner("classif.knn", par.vals = list("k" = 7))
+```
+
+```{r}
+model_dm_tuned = train(learner = learner_dm,
+                       task = task_dm)
+```
+
+```{r, warning=FALSE}
+calculateConfusionMatrix(predict(model_dm_tuned, newdata = dm_tib))
+```
+
