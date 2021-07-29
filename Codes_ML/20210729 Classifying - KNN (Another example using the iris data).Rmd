@@ -1,0 +1,56 @@
+---
+title: "20210729 Classifying - KNN (Another example using the iris data)"
+author: "cheungngo"
+date: "29 July 2021"
+output: html_document
+---
+
+### Preparing the libraries and data and others
+
+```{r, message=FALSE, warning=FALSE}
+library(mclust)
+library(tidyverse)
+library(mlr)
+```
+
+```{r}
+dat_iris = iris
+```
+
+```{r, warning=FALSE}
+tib_iris = as.tibble(dat_iris)
+```
+
+### Hyperparameter tuning
+
+```{r, warning=FALSE, message=FALSE}
+k_tuned = tuneParams(learner = "classif.knn",
+                     task = makeClassifTask(data = tib_iris, 
+                                            target = "Species"),
+                     resampling = makeResampleDesc(method = "RepCV",
+                                                   folds = 10,
+                                                   reps = 10,
+                                                   stratify = T),
+                     measures = acc,
+                     par.set = makeParamSet(makeDiscreteParam("k",
+                                                              values = 1:10)),
+                     control = makeTuneControlGrid())
+```
+
+```{r}
+k_tuned$x$k
+```
+
+### Training the model
+
+```{r, warning=FALSE}
+model_iris_tuned = train(learner = makeLearner(cl = "classif.knn",
+                                               par.vals = list("k"=9)),
+                         task = makeClassifTask(data = tib_iris,
+                                                target = "Species"))
+```
+
+```{r, warning=FALSE}
+calculateConfusionMatrix(predict(model_iris_tuned, newdata = tib_iris))
+```
+
