@@ -1,0 +1,46 @@
+---
+title: "20210730 Classifying - LDA QDA (wine example)"
+author: "cheungngo"
+date: "30 July 2021"
+output: html_document
+---
+
+### Loading the required libraries
+
+```{r, message=FALSE}
+library(mlr)
+library(tidyverse)
+library(HDclassif) # for the data used
+```
+
+### Preparing the data
+
+```{r}
+data(wine, package = "HDclassif")
+tib_wine = as_tibble(wine)
+```
+
+```{r}
+tib_wine[1:5,]
+```
+
+```{r}
+colnames(tib_wine) = c("class", "alco", "malic", "ash", "alk", "mag", "phe", "flav", "non_flav", "proan", "col", "hue", "od", "prol")
+```
+
+```{r}
+tib_wine[1:5,]
+```
+
+### Training the model
+
+```{r, warning=FALSE}
+task_wine = makeClassifTask(data = tib_wine, target = "class")
+learner_wine = makeLearner(cl = "classif.lda")
+```
+
+```{r}
+model_wine = train(learner_wine, task_wine)
+```
+
+
