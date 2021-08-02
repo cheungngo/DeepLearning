@@ -7,7 +7,7 @@ output: html_document
 
 ### Loading the required libraries
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 library(mlr)
 library(tidyverse)
 library(HDclassif) # for the data used
@@ -43,4 +43,127 @@ learner_wine = makeLearner(cl = "classif.lda")
 model_wine = train(learner_wine, task_wine)
 ```
 
+```{r}
+# also for the QDA
+model_wine_qda = train(learner = makeLearner("classif.qda"),
+                       task = task_wine)
+```
+
+
+### Cross-validating
+
+```{r, message=FALSE}
+CV_lda = resample(learner = learner_wine,
+                  task = task_wine,
+                  resampling = makeResampleDesc(method = "RepCV", 
+                                                folds = 10,
+                                                reps = 10,
+                                                stratify = T),
+                  measures = list(mmce,acc))
+
+CV_qda = resample(learner = makeLearner(cl = "classif.qda"),
+                  task = task_wine,
+                  resampling = makeResampleDesc(method = "RepCV", 
+                                                folds = 10,
+                                                reps = 10,
+                                                stratify = T),
+                  measures = list(mmce,acc))
+```
+
+```{r}
+CV_lda$aggr; CV_qda$aggr
+# so the QDA seems to be better in this case!
+```
+
+```{r}
+calculateConfusionMatrix(CV_lda$pred, relative = T)
+calculateConfusionMatrix(CV_qda$pred, relative = T)
+```
+
+### Making prediction of a new wine sample
+
+```{r}
+new_wine = tibble(13,2,2.2,19,100,2.3,2.5,0.35,1.7,4,1.1,3,750)
+colnames(new_wine) = c("alco", "malic", "ash", "alk", "mag", "phe", "flav", "non_flav", "proan", "col", "hue", "od", "prol")
+predict(model_wine_qda, newdata = new_wine)
+predict(model_wine, newdata = new_wine)
+# different prediction!
+```
+
+
+### Extracting the values from the model (now mainly for the visualization)
+
+```{r}
+model_wine_data = getLearnerModel(model_wine)
+lda_model_wine = predict(model_wine_data)$x
+```
+
+```{r}
+### looking at the LDA
+plot(lda_model_wine, col = tib_wine$class)
+```
+
+```{r}
+# note that the above operation could not be performed for qda
+```
+
+### What about doing knn by using the lda data?
+
+```{r}
+data_wine_lda = cbind(tib_wine$class, lda_model_wine)
+data_wine_lda = as.tibble(data_wine_lda)
+colnames(data_wine_lda) = c("class", "LD1", "LD2")
+data_wine_lda$class = as.factor(data_wine_lda$class)
+```
+
+```{r}
+tuned = tuneParams(learner = makeLearner(cl = "classif.knn"),
+                   task = makeClassifTask(data = data_wine_lda,
+                                          target = "class"),
+                   resampling = makeResampleDesc(method = "RepCV", 
+                                                 folds = 10,
+                                                 reps = 10,
+                                                 stratify = T),
+                   measures = acc,
+                   par.set = makeParamSet(makeDiscreteParam("k", 
+                                                            values = 1:10)),
+                   control = makeTuneControlGrid())
+# k = 4 is picked
+```
+
+```{r}
+# Also recall
+
+CV_lda$aggr
+
+# while we got 0.9972 for k = 4
+```
+
+```{r, warning=FALSE}
+model_wine_knn = train(learner = makeLearner(cl = "classif.knn",
+                                             par.vals = list("k"=4)),
+                       task = makeClassifTask(data = data_wine_lda,
+                                              target = "class"))
+```
+
+```{r, warning=FALSE}
+calculateConfusionMatrix(predict(model_wine_knn, newdata = data_wine_lda))
+```
+
+```{r}
+# Getting the LDA for the new datapoint by predict
+# Note that model_wine_data is obtained from getLearnerModel(model_wine)
+pred = predict(model_wine_data, newdata = new_wine)$x
+pred
+```
+
+```{r}
+predict(model_wine_knn, newdata = as.data.frame(pred))
+# same prediction as the LDA model
+```
+
+```{r}
+plot(lda_model_wine, col = tib_wine$class)
+text(pred, "NEW")
+```
 
