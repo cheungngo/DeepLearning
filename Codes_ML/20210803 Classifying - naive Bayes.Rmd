@@ -1,0 +1,73 @@
+---
+title: "20210803 Classifying - naive Bayes"
+author: "cheungngo"
+date: "3 August 2021"
+output: html_document
+---
+
+### Loading the required libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(mlr)
+library(tidyverse)
+library(mlbench) # for the data used
+```
+
+### Preparing the data
+
+```{r}
+# data of votes -> classifying their political affliations
+data("HouseVotes84", package = "mlbench")
+tib_votes = as_tibble(HouseVotes84)
+tib_votes[1:5,]
+```
+
+```{r}
+# counting the NA
+map_dbl(tib_votes, ~sum(is.na(.x)))
+# ~ indicates function
+# .x indicates the x in f(x)
+```
+
+### Training the model
+
+```{r, warning=FALSE}
+model_votes_bayes = train(learner = makeLearner(cl = "classif.naiveBayes"),
+                          task = makeClassifTask(data = tib_votes,
+                                                 target = "Class"))
+```
+
+```{r, warning=FALSE}
+calculateConfusionMatrix(predict(model_votes_bayes, newdata = tib_votes))
+```
+
+### Cross-validating the model
+
+```{r, warning=FALSE, message=FALSE}
+CV_bayes = resample(learner = makeLearner(cl = "classif.naiveBayes"),
+                    task = makeClassifTask(data = tib_votes,
+                                           target = "Class"),
+                    resampling = makeResampleDesc(method = "RepCV",
+                                                  folds = 10,
+                                                  reps = 10,
+                                                  stratify = T),
+                    measures = list(mmce, acc, fpr, fnr))
+```
+
+```{r}
+CV_bayes$aggr
+# ~90% accuracy not bad
+```
+
+### Using this validated model to predict
+
+```{r}
+new_politician = c("n", "n", "y", "n", "n", "y", "y", "y", "y", "y", "n", "y", "n", "n", "y", "n")
+names(new_politician) = colnames(tib_votes)[-1]
+new_politician = as_tibble(t(as.data.frame(new_politician)))
+```
+
+```{r}
+predict(model_votes_bayes, newdata = new_politician)
+```
+
