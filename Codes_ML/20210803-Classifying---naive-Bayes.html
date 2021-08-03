@@ -224,7 +224,7 @@ map_dbl(tib_votes, ~sum(is.na(.x)))</code></pre>
                     measures = list(mmce, acc, fpr, fnr))</code></pre>
 <pre class="r"><code>CV_bayes$aggr</code></pre>
 <pre><code>## mmce.test.mean  acc.test.mean  fpr.test.mean  fnr.test.mean 
-##     0.09840808     0.90159192     0.08227941     0.10863248</code></pre>
+##     0.09854727     0.90145273     0.08261029     0.10860399</code></pre>
 <pre class="r"><code># ~90% accuracy not bad</code></pre>
 </div>
 <div id="using-this-validated-model-to-predict" class="section level3">
@@ -239,9 +239,105 @@ new_politician = as_tibble(t(as.data.frame(new_politician)))</code></pre>
 <pre><code>## Prediction: 1 observations
 ## predict.type: response
 ## threshold: 
-## time: 0.00
+## time: 0.02
 ##   response
 ## 1 democrat</code></pre>
+</div>
+<div id="extracting-info-from-the-model" class="section level3">
+<h3>Extracting info from the model</h3>
+<pre class="r"><code>modeldata_votes_bayes = getLearnerModel(model_votes_bayes)
+modeldata_votes_bayes</code></pre>
+<pre><code>## 
+## Naive Bayes Classifier for Discrete Predictors
+## 
+## Call:
+## naiveBayes.default(x = X, y = Y, laplace = laplace)
+## 
+## A-priori probabilities:
+## Y
+##   democrat republican 
+##  0.6137931  0.3862069 
+## 
+## Conditional probabilities:
+##             V1
+## Y                    n         y
+##   democrat   0.3953488 0.6046512
+##   republican 0.8121212 0.1878788
+## 
+##             V2
+## Y                    n         y
+##   democrat   0.4979079 0.5020921
+##   republican 0.4932432 0.5067568
+## 
+##             V3
+## Y                    n         y
+##   democrat   0.1115385 0.8884615
+##   republican 0.8658537 0.1341463
+## 
+##             V4
+## Y                     n          y
+##   democrat   0.94594595 0.05405405
+##   republican 0.01212121 0.98787879
+## 
+##             V5
+## Y                     n          y
+##   democrat   0.78431373 0.21568627
+##   republican 0.04848485 0.95151515
+## 
+##             V6
+## Y                    n         y
+##   democrat   0.5232558 0.4767442
+##   republican 0.1024096 0.8975904
+## 
+##             V7
+## Y                    n         y
+##   democrat   0.2277992 0.7722008
+##   republican 0.7592593 0.2407407
+## 
+##             V8
+## Y                    n         y
+##   democrat   0.1711027 0.8288973
+##   republican 0.8471338 0.1528662
+## 
+##             V9
+## Y                    n         y
+##   democrat   0.2419355 0.7580645
+##   republican 0.8848485 0.1151515
+## 
+##             V10
+## Y                    n         y
+##   democrat   0.5285171 0.4714829
+##   republican 0.4424242 0.5575758
+## 
+##             V11
+## Y                    n         y
+##   democrat   0.4941176 0.5058824
+##   republican 0.8679245 0.1320755
+## 
+##             V12
+## Y                    n         y
+##   democrat   0.8554217 0.1445783
+##   republican 0.1290323 0.8709677
+## 
+##             V13
+## Y                    n         y
+##   democrat   0.7103175 0.2896825
+##   republican 0.1392405 0.8607595
+## 
+##             V14
+## Y                     n          y
+##   democrat   0.64980545 0.35019455
+##   republican 0.01863354 0.98136646
+## 
+##             V15
+## Y                     n          y
+##   democrat   0.36254980 0.63745020
+##   republican 0.91025641 0.08974359
+## 
+##             V16
+## Y                     n          y
+##   democrat   0.06486486 0.93513514
+##   republican 0.34246575 0.65753425</code></pre>
 </div>
 
 

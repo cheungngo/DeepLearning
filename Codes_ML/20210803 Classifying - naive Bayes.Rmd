@@ -71,3 +71,10 @@ new_politician = as_tibble(t(as.data.frame(new_politician)))
 predict(model_votes_bayes, newdata = new_politician)
 ```
 
+### Extracting info from the model
+
+```{r}
+modeldata_votes_bayes = getLearnerModel(model_votes_bayes)
+modeldata_votes_bayes
+```
+
