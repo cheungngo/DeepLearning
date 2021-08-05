@@ -1,0 +1,110 @@
+---
+title: "20210805 Classifying - support vector machines"
+author: "cheungngo"
+date: "5 August 2021"
+output: html_document
+---
+
+### Loading the required libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(mlr)
+library(tidyverse)
+library(kernlab) # for the data used
+```
+
+### Preparing the data
+
+```{r}
+data("spam", package = "kernlab")
+tib_spam = as_tibble(spam)
+tib_spam[1:5,]
+```
+
+### Preparations for tuning the hyperparameters
+
+```{r}
+# looking at the hyperparameters
+getParamSet("classif.svm")
+# note that important hyperparams including "kernal", "cost", "degree", "gamma"
+# the "Type" of hyperparam is also important, that if you are going to define a numeric param you should use makeNumericParam()
+```
+
+```{r}
+# Defining the hyperparam space
+
+hyperspace = makeParamSet(makeDiscreteParam("kernel",
+                                            values = c("polynomial", "radial", "sigmoid")),
+                          makeNumericParam("cost", lower = 0.1, upper = 10),
+                          makeIntegerParam("degree", lower = 1, upper = 3),
+                          makeNumericParam("gamma", lower = 0.1, upper = 10))
+# note that similar operation was also done in the knn classification but it was much simpler
+# recall: kspace = makeParamSet(makeDiscreteParam("k", values = 1:10))
+```
+
+```{r}
+# Defining methods to search the hyperparam space
+# recall that in knn grid method is used as k is discrete param
+# but this time we have numeric param
+
+hyperspace_search = makeTuneControlRandom(maxit = 20)
+```
+
+### Tuning the hyperparameters
+
+```{r}
+# The use of multi-threading 
+
+library(parallelMap)
+library(parallel)
+parallelStartSocket(cpus = detectCores())
+```
+
+```{r}
+# The tuning
+
+tuned = tuneParams(learner = makeLearner(cl = "classif.svm"),
+                   task = makeClassifTask(data = tib_spam,
+                                          target = "type"),
+                   resampling = makeResampleDesc("Holdout", split = 2/3), # less computationally expensive
+                   par.set = hyperspace,
+                   control = hyperspace_search)
+```
+
+```{r}
+tuned
+```
+
+```{r}
+parallelStop()
+```
+
+
+### Training the model with the tuned hyperparams
+
+```{r}
+tuned_learner = setHyperPars(learner = makeLearner(cl = "classif.svm"),
+                             par.vals = tuned$x) # this step is quite different from other methods of classifications
+model_spam = train(tuned_learner,
+                   makeClassifTask(data = tib_spam, target = "type"))
+```
+
+```{r}
+calculateConfusionMatrix(predict(model_spam, newdata = tib_spam))
+```
+
+
+### Cross-validating the model
+
+```{r}
+parallelStartSocket(cpus = detectCores())
+CV_spam = resample(learner = makeLearner("classif.svm"),
+                   task = makeClassifTask(data = tib_spam, target = "type"),
+                   resampling = makeResampleDesc(method = "RepCV",
+                                                 folds = 10,
+                                                 reps = 10,
+                                                 stratify = T),
+                   measures = list(mmce, acc, fpr, fnr))
+parallelStop()
+```
+
