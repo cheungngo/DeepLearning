@@ -1,0 +1,126 @@
+---
+title: "20210810 Classifying - decision trees"
+author: "cheungngo"
+date: "10 August 2021"
+output: html_document
+---
+
+### Loading the required libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(mlr)
+library(tidyverse)
+library(mlbench) # for the data used
+```
+
+### Preparing the data required
+
+```{r}
+data("Zoo", package = "mlbench")
+tib_zoo = as_tibble(Zoo)
+```
+
+```{r}
+# checking out on the data
+tib_zoo[1:5,]
+```
+
+```{r}
+# note that "T/F" could not be processed
+# we need to convert that into factors
+
+tib_zoo <- mutate_if(tib_zoo, is.logical, as.factor)
+class(tib_zoo$hair) # as an example
+```
+
+### Preparations for tuning the hyperparameters
+
+```{r}
+# looking at the hyperparameters
+getParamSet("classif.rpart")
+# note that important hyperparams including "minsplit", "minbucket", "cp", and "maxdepth"
+# the "Type" of hyperparam is also important, that if you are going to define a numeric param you should use makeNumericParam()
+```
+
+```{r}
+# Defining the hyperparam space
+
+hyperspace = makeParamSet(makeIntegerParam("minsplit", lower = 5, upper = 20),
+                          makeIntegerParam("minbucket", lower = 3, upper = 10),
+                          makeNumericParam("cp", lower = 0.01, upper = 0.1),
+                          makeIntegerParam("maxdepth", lower = 3, upper = 10))
+# note that similar operation was also done in the knn classification but it was much simpler
+# recall: kspace = makeParamSet(makeDiscreteParam("k", values = 1:10))
+```
+
+```{r}
+# Defining methods to search the hyperparam space
+# recall that in knn grid method is used as k is discrete param
+# but this time we have numeric param
+
+hyperspace_search = makeTuneControlRandom(maxit = 200) # note that this is much higher than the previous Support Vector Machine one, as decision trees are less computationally demanding
+```
+
+### Tuning the hyperparameters
+
+```{r}
+# The use of multi-threading 
+
+library(parallelMap)
+library(parallel)
+parallelStartSocket(cpus = detectCores())
+```
+
+```{r}
+tuned = tuneParams(learner = makeLearner(cl = "classif.rpart"),
+                   task = makeClassifTask(data = tib_zoo,
+                                          target = "type"),
+                   resampling = makeResampleDesc("CV", iters = 5),
+                   par.set = hyperspace,
+                   control = hyperspace_search)
+
+parallelStop()
+```
+
+```{r}
+tuned
+```
+
+### Training the model
+
+```{r}
+# The tuned learner
+learner_tuned = setHyperPars(learner = makeLearner("classif.rpart"),
+                             par.vals = tuned$x)
+```
+
+```{r}
+model_zoo = train(learner_tuned,
+                  makeClassifTask(data = tib_zoo, target = "type"))
+```
+
+### Ploting the decision tree
+
+```{r}
+library(rpart.plot) # package required for ploting the decision tree
+```
+
+```{r}
+# extracting the model data
+model_zoo_data = getLearnerModel(model_zoo)
+```
+
+```{r, message=FALSE}
+rpart.plot(model_zoo_data)
+```
+
+```{r}
+rpart.plot(model_zoo_data,
+           roundint = F, # no warning messages
+           box.palette = "BuBn", #default color palate
+           type = 5) # there are different types
+```
+
+```{r}
+# note that one can visualize the summary of the model by summary(model_zoo_data)
+```

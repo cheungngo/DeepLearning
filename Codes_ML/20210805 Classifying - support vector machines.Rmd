@@ -92,19 +92,3 @@ model_spam = train(tuned_learner,
 ```{r}
 calculateConfusionMatrix(predict(model_spam, newdata = tib_spam))
 ```
-
-
-### Cross-validating the model
-
-```{r}
-parallelStartSocket(cpus = detectCores())
-CV_spam = resample(learner = makeLearner("classif.svm"),
-                   task = makeClassifTask(data = tib_spam, target = "type"),
-                   resampling = makeResampleDesc(method = "RepCV",
-                                                 folds = 10,
-                                                 reps = 10,
-                                                 stratify = T),
-                   measures = list(mmce, acc, fpr, fnr))
-parallelStop()
-```
-
