@@ -124,3 +124,15 @@ rpart.plot(model_zoo_data,
 ```{r}
 # note that one can visualize the summary of the model by summary(model_zoo_data)
 ```
+
+### Cross validation
+
+```{r}
+parallelStartSocket(cpus = detectCores())
+CV_zoo = resample(learner = learner_tuned,
+                  task = makeClassifTask(data = tib_zoo, target = "type"),
+                  resampling = makeResampleDesc(method = "CV",
+                                                iters = 5),
+                  measures = list(mmce, acc))
+parallelStop()
+```
