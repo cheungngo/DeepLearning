@@ -1,0 +1,124 @@
+---
+title: "20210819 Classifying - decision trees with random forest"
+author: "cheungngo"
+date: "19 August 2021"
+output: html_document
+---
+
+### Loading the required libraries
+
+```{r, message=FALSE, warning=FALSE}
+library(mlr)
+library(tidyverse)
+library(mlbench) # for the data used
+library(randomForest) # needed for the random forest
+```
+
+### Preparing the data required
+
+```{r}
+data("Zoo", package = "mlbench")
+tib_zoo = as_tibble(Zoo)
+```
+
+```{r}
+# checking out on the data
+tib_zoo[1:5,]
+```
+
+```{r}
+# note that "T/F" could not be processed
+# we need to convert that into factors
+
+tib_zoo <- mutate_if(tib_zoo, is.logical, as.factor)
+class(tib_zoo$hair) # as an example
+```
+
+### Preparations for tuning the hyperparameters
+
+```{r}
+# looking at the hyperparameters
+getParamSet("classif.randomForest")
+# note that important hyperparams including "ntree", "mtry", "nodesize", and "maxnodes"
+# the "Type" of hyperparam is also important, that if you are going to define a numeric param you should use makeNumericParam()
+```
+
+```{r}
+# Defining the hyperparam space
+
+hyperspace = makeParamSet(makeIntegerParam("ntree", lower = 100, upper = 100),
+                          makeIntegerParam("mtry", lower = 6, upper = 12),
+                          makeIntegerParam("nodesize", lower = 1, upper = 5),
+                          makeIntegerParam("maxnodes", lower = 5, upper = 20))
+
+# "ntree": more is better, just more computational power
+# "mtry": depend on how many covariants you have; slightly smaller than the max no. of covar
+# "nodesize": depend on the min number of subjects in a group
+# "maxnodes": like you want large or small trees in general
+```
+
+```{r}
+# Defining methods to search the hyperparam space
+
+hyperspace_search = makeTuneControlRandom(maxit = 100)
+```
+
+### Tuning the hyperparameters
+
+```{r}
+library(parallelMap)
+library(parallel)
+```
+
+```{r}
+parallelStartSocket(cpus = detectCores())
+tuned = tuneParams(learner = makeLearner(cl = "classif.randomForest"),
+                   task = makeClassifTask(data = tib_zoo, target = "type"),
+                   resampling = makeResampleDesc("CV", iters = 5),
+                   par.set = hyperspace,
+                   control = hyperspace_search)
+parallelStop()
+```
+
+```{r}
+tuned
+```
+
+### Training the model using the results
+
+```{r}
+model_zoo_bag = train(learner = setHyperPars(learner = makeLearner("classif.randomForest"), par.vals = tuned$x),
+                      task = makeClassifTask(data = tib_zoo, target = "type"))
+```
+
+### Plotting out the "out-of-bag" data
+
+```{r}
+# extracting the model data
+model_zoo_bag_data = getLearnerModel(model_zoo_bag)
+```
+
+```{r}
+model_zoo_bag_data
+```
+
+```{r}
+species = colnames(model_zoo_bag_data$err.rate)
+plot(model_zoo_bag_data, col = 1:length(species), lty = 1:length(species))
+legend("topright",
+       legend = species,
+       col = 1:length(species),
+       lty = 1:length(species))
+```
+
+### Cross validation
+
+```{r}
+parallelStartSocket(cpus = detectCores())
+CV_zoo = resample(learner = setHyperPars(learner = makeLearner("classif.randomForest"), par.vals = tuned$x),
+                  task = makeClassifTask(data = tib_zoo, target = "type"),
+                  resampling = makeResampleDesc(method = "CV",
+                                                iters = 5),
+                  measures = list(mmce, acc))
+parallelStop()
+```
